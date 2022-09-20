@@ -3,6 +3,10 @@ version := "0.0.1-SNAPSHOT"
 
 scalaVersion := "2.13.6"
 
+scalacOptions ++= Seq(
+  "-Ymacro-annotations"
+)
+
 val libraries = new {
   object Version {
     val cats        = "2.8.0"
@@ -13,12 +17,15 @@ val libraries = new {
     val tapir       = "1.1.0"
     val derevo      = "0.13.0"
     val sttpApiSpec = "0.2.1"
+    val refined     = "0.10.1"
+    val newType     = "0.4.4"
   }
 
   val catsCore = "org.typelevel" %% "cats-core" % Version.cats
 
   val circeCore            = "io.circe"                      %% "circe-core"          % Version.circe
   val circeGeneric         = "io.circe"                      %% "circe-generic"       % Version.circe
+  val circeRefined         = "io.circe"                      %% "circe-refined"       % Version.circe
   val http4sCirce          = "org.http4s"                    %% "http4s-circe"        % Version.http4s
   val http4sDsl            = "org.http4s"                    %% "http4s-dsl"          % Version.http4s
   val http4sEmberServer    = "org.http4s"                    %% "http4s-ember-server" % Version.http4s
@@ -32,15 +39,25 @@ val libraries = new {
   val tapirOpenApiDocs     = "com.softwaremill.sttp.tapir"   %% "tapir-openapi-docs"  % Version.tapir
   val tapirSwaggerUi       = "com.softwaremill.sttp.tapir"   %% "tapir-swagger-ui"    % Version.tapir
   val tapirDerevo          = "com.softwaremill.sttp.tapir"   %% "tapir-derevo"        % Version.tapir
+  val tapirRefined         = "com.softwaremill.sttp.tapir"   %% "tapir-refined"       % Version.tapir
+  val tapirNewType         = "com.softwaremill.sttp.tapir"   %% "tapir-newtype"       % Version.tapir
   val derevoCirce          = "tf.tofu"                       %% "derevo-circe"        % Version.derevo
   val derevoCats           = "tf.tofu"                       %% "derevo-cats"         % Version.derevo
   val logback              = "ch.qos.logback"                 % "logback-classic"     % Version.logback
+  val newType              = "io.estatico"                   %% "newtype"             % Version.newType
+  val refinedCore          = "eu.timepit"                    %% "refined"             % Version.refined
+  val refinedCats          = "eu.timepit"                    %% "refined-cats"        % Version.refined
+
 }
 
 libraryDependencies ++= Seq(
   libraries.catsCore,
   libraries.circeCore,
   libraries.circeGeneric,
+  libraries.circeRefined,
+  libraries.newType,
+  libraries.refinedCore,
+  libraries.refinedCats,
   libraries.http4sCirce,
   libraries.http4sDsl,
   libraries.http4sEmberServer,
@@ -54,6 +71,8 @@ libraryDependencies ++= Seq(
   libraries.tapirOpenApiDocs,
   libraries.tapirSwaggerUi,
   libraries.tapirDerevo,
+  libraries.tapirRefined,
+  libraries.tapirNewType,
   libraries.derevoCirce,
   libraries.logback
 )
