@@ -20,11 +20,12 @@ object Main extends IOApp.Simple {
   val version = "0.0.1"
 
   override def run: IO[Unit] = for {
-    log                    <- Slf4jLogger.create[IO]
-    (exampleAccount, bank) <- InMemoryBank[IO]
-    accountService   = new Account[IO](bank)
-    operationService = new Operations[IO](bank, log)
-    _ <- log.info(s"Created sample account with id ${exampleAccount.value}")
+    log       <- Slf4jLogger.create[IO]
+    bankState <- InMemoryBank[IO]
+    (exampleAccount, bank) = bankState
+    accountService         = new Account[IO](bank)
+    operationService       = new Operations[IO](bank, log)
+    _ <- log.info(s"Created sample account with id $exampleAccount")
     docs = OpenAPIDocsInterpreter().toOpenAPI(
       List(Account.createAccount, Account.getBalance, Operations.transfer),
       name,
