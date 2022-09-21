@@ -1,20 +1,19 @@
 package ormy.router
 
 import cats.effect.Async
-import ormy.router.Base.baseErrorEndpoint
-import sttp.tapir.json.circe.jsonBody
-import sttp.tapir.codec.newtype._
-import sttp.tapir.generic.auto._
-import io.circe.generic.auto._
-import ormy.api.Bank
-import sttp.tapir.codec.refined._
-import Operations._
-import sttp.tapir.server.http4s.Http4sServerInterpreter
 import cats.implicits._
+import io.circe.generic.auto._
+import org.typelevel.log4cats.Logger
+import ormy.api.Bank
 import ormy.domain.Balance
+import ormy.router.Base.baseErrorEndpoint
+import ormy.router.Operations._
 import ormy.router.Response.BalanceReturned
 import sttp.model.StatusCode
-import org.typelevel.log4cats.Logger
+import sttp.tapir.codec.newtype._
+import sttp.tapir.codec.refined._
+import sttp.tapir.generic.auto._
+import sttp.tapir.json.circe.jsonBody
 
 class Operations[F[_]](bank: Bank[F], logger: Logger[F])(implicit F: Async[F]) {
   def toError(statusCode: StatusCode, message: String) = F.pure(Left((statusCode, ErrorResponse(message))))
@@ -27,10 +26,10 @@ class Operations[F[_]](bank: Bank[F], logger: Logger[F])(implicit F: Async[F]) {
           error match {
             case Bank.ConcurrentUpdate => toError(StatusCode.PreconditionFailed, "Concurrent update of record")
             case Bank.InsufficientBalance(account) =>
-              toError(StatusCode.Conflict, s"Insufficient balance in account of ${account.value}]")
-            case Bank.AccountDoesNotExist(account) => toError(StatusCode.NotFound, s"Account ${account.value} is not found")
+              toError(StatusCode.Conflict, s"Insufficient balance in account of ${account.show}]")
+            case Bank.AccountDoesNotExist(account) => toError(StatusCode.NotFound, s"Account ${account.show} is not found")
             case Bank.InvalidSelfTransfer(account) =>
-              toError(StatusCode.BadRequest, s"Self transfer to Account ${account.value} is impossible")
+              toError(StatusCode.BadRequest, s"Self transfer to Account ${account.show} is impossible")
             case Bank.Unexpected(error) =>
               logger.error(error.getMessage) *> toError(StatusCode.InternalServerError, "System failure")
           }
@@ -46,13 +45,12 @@ class Operations[F[_]](bank: Bank[F], logger: Logger[F])(implicit F: Async[F]) {
       }
     } yield response
   )
-
-  val routes = Http4sServerInterpreter[F]().toRoutes(transferRoute)
 }
 
 object Operations {
   val transfer = baseErrorEndpoint.post
     .in("operations")
+    .in("transfer")
     .in(jsonBody[Request.Transfer])
     .out(jsonBody[Response.BalanceUpdated])
     .description("Transfer Money")

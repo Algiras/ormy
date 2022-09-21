@@ -13,7 +13,6 @@ import sttp.tapir.codec.newtype._
 import sttp.tapir.generic.auto._
 import sttp.tapir.json.circe.jsonBody
 import sttp.tapir.path
-import sttp.tapir.server.http4s.Http4sServerInterpreter
 
 class Account[F[_]: Async](bank: Bank[F]) {
   val createAccountRoute = createAccount.serverLogicSuccess[F]((_: Unit) =>
@@ -27,12 +26,9 @@ class Account[F[_]: Async](bank: Bank[F]) {
       result <- bank.getBalance(id)
     } yield result match {
       case Some(balance) => Right(Response.BalanceReturned(id, balance))
-      case None          => Left((StatusCode.NotFound, ErrorResponse(s"Account ${id.value} not found")))
+      case None          => Left((StatusCode.NotFound, ErrorResponse(s"Account ${id.show} not found")))
     }
   )
-
-  val routes = Http4sServerInterpreter[F]().toRoutes(getBalanceRoute) <+>
-    Http4sServerInterpreter[F]().toRoutes(createAccountRoute)
 }
 
 object Account {
