@@ -11,14 +11,15 @@ import sttp.tapir.docs.openapi.OpenAPIDocsInterpreter
 import sttp.tapir.server.http4s.Http4sServerInterpreter
 import sttp.tapir.swagger.SwaggerUI
 import cats.implicits._
+import com.comcast.ip4s.{Host, Port}
+import ormy.config.Config
 
 object Http4sApp extends IOApp.Simple {
   val corsPolicy: CORSPolicy                           = CORS.policy
-  val name                                             = "Ormy"
-  val version                                          = "0.0.1"
   private val interpreter: Http4sServerInterpreter[IO] = Http4sServerInterpreter[IO]()
 
   override def run: IO[Unit] = for {
+    Config(app, server)    <- Config.config.load[IO]
     log                    <- Slf4jLogger.create[IO]
     (exampleAccount, bank) <- InMemoryBank[IO]
     accountService   = new Account[IO](bank)
@@ -30,8 +31,8 @@ object Http4sApp extends IOApp.Simple {
         definition.Account.getBalance,
         definition.Operations.transfer
       ),
-      name,
-      version
+      app.name.value,
+      app.version.value
     )
 
     httpApp = (
@@ -40,10 +41,13 @@ object Http4sApp extends IOApp.Simple {
         interpreter.toRoutes(accountService.getBalanceRoute) <+>
         interpreter.toRoutes(operationService.transferRoute)
     ).orNotFound
+    port <- IO.fromOption(Port.fromInt(server.port.value))(new RuntimeException("Invalid Port"))
     _ <- EmberServerBuilder
       .default[IO]
+      .withHostOption(Host.fromString(server.host.value))
+      .withPort(port)
       .withHttpApp(corsPolicy(httpApp))
       .build
-      .use(server => log.info(s"$name v$version started on ${server.address.getHostString}") *> IO.readLine)
+      .use(server => log.info(s"${app.name.value} v${app.version.value} started on ${server.address.getHostString}") *> IO.readLine)
   } yield ()
 }

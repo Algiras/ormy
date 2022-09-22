@@ -16,18 +16,18 @@ import sttp.apispec.openapi.circe.yaml._
 import sttp.tapir.docs.openapi.OpenAPIDocsInterpreter
 import sttp.tapir.server.akkahttp.AkkaHttpServerInterpreter
 import sttp.tapir.swagger.SwaggerUI
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import ormy.config.Config
 
 object AkkaApp extends IOApp {
-  val name    = "Ormy"
-  val version = "0.0.1"
-
   val ioToFuture: ~>[IO, Future] = new ~>[IO, Future] {
     override def apply[A](fa: IO[A]): Future[A] = fa.unsafeToFuture()(runtime)
   }
 
   override def run(args: List[String]): IO[ExitCode] = for {
+    Config(app, server)    <- Config.config.load[IO]
     log                    <- Slf4jLogger.create[IO]
     (exampleAccount, bank) <- InMemoryBank[IO]
     futureBank       = FunctorK[Bank].mapK[IO, Future](bank)(ioToFuture)
@@ -41,8 +41,8 @@ object AkkaApp extends IOApp {
         definition.Account.getBalance,
         definition.Operations.transfer
       ),
-      name,
-      version
+      app.name.value,
+      app.version.value
     )
     interpreter: AkkaHttpServerInterpreter = AkkaHttpServerInterpreter()
     httpApp: Route = concat(
@@ -54,9 +54,9 @@ object AkkaApp extends IOApp {
     system = ActorSystem()
     server <- IO.fromFuture(IO {
       implicit val ctx: ActorSystem = system
-      Http()(system).newServerAt("localhost", 8080).bindFlow(httpApp)
+      Http()(system).newServerAt(server.host.value, server.port.value).bindFlow(httpApp)
     })
-    _ <- log.info(s"$name v$version started on ${server.localAddress.getAddress.toString}")
+    _ <- log.info(s"${app.name.value} v${app.version.value} started on ${server.localAddress.getAddress.toString}")
     _ <- IO.readLine
     _ <- IO.fromFuture(IO(server.unbind()))
     _ <- IO.fromFuture(IO(system.terminate()))

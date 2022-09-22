@@ -11,9 +11,9 @@ lazy val dependencies = new {
     val sttpApiSpec = "0.2.1"
     val refined     = "0.10.1"
     val newType     = "0.4.4"
-
-    val akka     = "2.6.20"
-    val akkaHttp = "10.2.10"
+    val akka        = "2.6.20"
+    val akkaHttp    = "10.2.10"
+    val ciris       = "2.4.0"
   }
 
   val catsCore             = "org.typelevel"                 %% "cats-core"              % Version.cats
@@ -47,6 +47,8 @@ lazy val dependencies = new {
   val akkaHttp             = "com.typesafe.akka"             %% "akka-http"              % Version.akkaHttp
   val akkaTapir            = "com.softwaremill.sttp.tapir"   %% "tapir-akka-http-server" % Version.tapir
   val derevoCatsTagless    = "tf.tofu"                       %% "derevo-cats-tagless"    % Version.derevo
+  val ciris                = "is.cir"                        %% "ciris"                  % "2.4.0"
+  val cirisRefined         = "is.cir"                        %% "ciris-refined"          % "2.4.0"
 }
 
 lazy val commonDependencies = Seq(
@@ -78,6 +80,16 @@ lazy val common = project.settings(
   name := "core",
   settings,
   libraryDependencies ++= commonDependencies
+)
+
+lazy val config = project.settings(
+  name := "config",
+  settings,
+  libraryDependencies ++= Seq(
+    dependencies.catsCore,
+    dependencies.ciris,
+    dependencies.cirisRefined
+  )
 )
 
 lazy val api = project
@@ -155,7 +167,7 @@ lazy val http4sApp = project
       dependencies.logback
     )
   )
-  .dependsOn(common, api, router, routerDefinition, service)
+  .dependsOn(common, api, router, routerDefinition, service, config)
 
 lazy val akkaApp = project
   .settings(
@@ -172,7 +184,7 @@ lazy val akkaApp = project
       dependencies.akkaStream
     )
   )
-  .dependsOn(common, api, router, routerDefinition, service)
+  .dependsOn(common, api, router, routerDefinition, service, config)
 
 lazy val settings = Seq(
   scalaVersion := "2.13.6",
