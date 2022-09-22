@@ -1,5 +1,7 @@
 package ormy.api
 
+import cats.tagless.FunctorK
+import cats.~>
 import ormy.api.Bank.{BankError, LatestBalance}
 import ormy.domain.{AccountId, Amount, Balance}
 
@@ -10,6 +12,18 @@ trait Bank[F[_]] {
 }
 
 object Bank {
+  implicit val bankFunctorK: FunctorK[Bank] = new FunctorK[Bank] {
+    override def mapK[F[_], G[_]](af: Bank[F])(fk: F ~> G): Bank[G] = new Bank[G] {
+      override def openAccount: G[AccountId] = fk(af.openAccount)
+
+      override def getBalance(account: AccountId): G[Option[Balance]] = fk(af.getBalance(account))
+
+      override def transfer(from: AccountId, to: AccountId, amount: Amount): G[Either[BankError, LatestBalance]] = fk(
+        af.transfer(from, to, amount)
+      )
+    }
+  }
+
   case class AccountBalance(id: AccountId, balance: Balance)
   case class LatestBalance(recipient: AccountBalance, subsidiary: AccountBalance)
 

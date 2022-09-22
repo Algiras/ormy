@@ -1,4 +1,4 @@
-package ormy.router
+package ormy.definition
 
 import derevo.circe.{decoder, encoder}
 import derevo.derive

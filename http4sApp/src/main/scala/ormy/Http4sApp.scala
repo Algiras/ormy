@@ -2,7 +2,6 @@ package ormy
 
 import cats.effect.{IO, IOApp}
 import org.http4s.ember.server.EmberServerBuilder
-import org.http4s.server.Router
 import org.http4s.server.middleware.{CORS, CORSPolicy}
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import ormy.router.{Account, Operations}
@@ -14,10 +13,10 @@ import sttp.tapir.swagger.SwaggerUI
 import cats.implicits._
 
 object Http4sApp extends IOApp.Simple {
-  val corsPolicy: CORSPolicy = CORS.policy
-  val name                   = "Ormy"
-  val version                = "0.0.1"
-  val interpreter            = Http4sServerInterpreter[IO]()
+  val corsPolicy: CORSPolicy                           = CORS.policy
+  val name                                             = "Ormy"
+  val version                                          = "0.0.1"
+  private val interpreter: Http4sServerInterpreter[IO] = Http4sServerInterpreter[IO]()
 
   override def run: IO[Unit] = for {
     log                    <- Slf4jLogger.create[IO]
@@ -26,23 +25,25 @@ object Http4sApp extends IOApp.Simple {
     operationService = new Operations[IO](bank, log)
     _ <- log.info(s"Created sample account with id ${exampleAccount.show}")
     docs = OpenAPIDocsInterpreter().toOpenAPI(
-      List(Account.createAccount, Account.getBalance, Operations.transfer),
+      List(
+        definition.Account.createAccount,
+        definition.Account.getBalance,
+        definition.Operations.transfer
+      ),
       name,
       version
     )
-    swaggerRoutes = Http4sServerInterpreter[IO]().toRoutes(
-      SwaggerUI[IO](docs.toYaml)
-    )
-    httpApp = Router(
-      "/" -> (swaggerRoutes <+>
+
+    httpApp = (
+      interpreter.toRoutes(SwaggerUI[IO](docs.toYaml)) <+>
         interpreter.toRoutes(accountService.createAccountRoute) <+>
         interpreter.toRoutes(accountService.getBalanceRoute) <+>
-        interpreter.toRoutes(operationService.transferRoute))
+        interpreter.toRoutes(operationService.transferRoute)
     ).orNotFound
     _ <- EmberServerBuilder
       .default[IO]
       .withHttpApp(corsPolicy(httpApp))
       .build
-      .use(server => log.info(s"$name v$version started on ${server.address.getHostString}") *> IO.never[Unit])
+      .use(server => log.info(s"$name v$version started on ${server.address.getHostString}") *> IO.readLine)
   } yield ()
 }
